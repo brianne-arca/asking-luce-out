@@ -1,0 +1,74 @@
+body { 
+    font-family: Arial, sans-serif; 
+    padding: 50px; 
+    text-align: center; 
+    background: #fff0f5; 
+}
+
+button { 
+    margin: 5px; 
+    padding: 10px 20px; 
+    font-size: 16px; 
+    cursor: pointer; 
+}
+
+#container { 
+    max-width: 700px; 
+    margin: auto; 
+}
+
+input, textarea, select { 
+    padding: 5px; 
+    font-size: 16px; 
+    margin-top: 10px; 
+}
+
+h1, h2 { 
+    color: #c71585; 
+}
+
+p.note {
+    font-size: 14px;
+    color: #c71585;
+}
+
+.sticky {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px dashed #c71585;
+    background: #ffe4f0;
+}
+
+.activity-option {
+    display: block;
+    text-align: left;
+    margin: 5px 0;
+}
+
+/* Back/Restart buttons styling */
+.back-restart {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.back-restart button {
+    font-size: 12px;
+    padding: 5px 10px;
+}
+
+/* Responsive for iPhone / small screens */
+@media (max-width: 500px) {
+    body {
+        padding: 20px;
+    }
+    button {
+        padding: 12px 24px;
+        font-size: 18px;
+    }
+    input, textarea, select {
+        font-size: 18px;
+        padding: 8px;
+    }
+}
