@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hi Luce!</title>
+<link rel="stylesheet" href="date.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<div id="container">
+    <div id="screen">
+        <h1>HI LUCE!</h1>
+        <button onclick="nextScreen(1)">Continue</button>
+    </div>
+</div>
+
+<script>
+let screenHistory = [];
+let selectedDate = "";
+let selectedTime = "";
+let selectedTown = "";
+let selectedActivities = [];
+let maybeInputText = "";
+let valentineAnswered = false;
+let superBowlAnswered = false;
+
+// ---------------------- Utilities ----------------------
+function parseLocalDate(dateStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const d = parseLocalDate(dateStr);
+    return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+}
+
+function formatTime(timeStr) {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":");
+    const t = new Date();
+    t.setHours(h, m);
+    return t.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+// ---------------------- Navigation ----------------------
+function nextScreen(screenId) {
+    const screen = document.getElementById("screen");
+
+    if (screenId === 1) {
+        screenHistory.push(screen.innerHTML);
+
+        screen.innerHTML = `
+            <h2>So I've been meaning to ask...</h2>
+            <button onclick="nextScreen(2)">Continue</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+    } else if (screenId === 2) {
+        screenHistory.push(screen.innerHTML);
+        screen.innerHTML = `
+            <h2>Can I take you on a date?</h2>
+            <button onclick="nextScreen('yes')">Yes</button>
+            <button onclick="nextScreen('maybe')">Maybe</button>
+            <button onclick="nextScreen('no')">Not interested</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+    } else if (screenId === 'yes') {
+        pickDateScreen();
+    } else if (screenId === 'maybe') {
+        maybeScreen();
+    } else if (screenId === 'no') {
+        notInterestedScreen();
+    }
+}
+
+function goBack() {
+    if (screenHistory.length > 0) {
+        document.getElementById("screen").innerHTML = screenHistory.pop();
+    }
+}
+
+function restart() {
+    screenHistory = [];
+    selectedDate = "";
+    selectedTime = "";
+    selectedTown = "";
+    selectedActivities = [];
+    maybeInputText = "";
+    valentineAnswered = false;
+    superBowlAnswered = false;
+    document.getElementById("screen").innerHTML = `
+        <h1>HI LUCE!</h1>
+        <button onclick="nextScreen(1)">Continue</button>
+    `;
+}
+
+// ---------------------- Pick Date ----------------------
+function pickDateScreen() {
+    const screen = document.getElementById("screen");
+    screenHistory.push(screen.innerHTML);
+    screen.innerHTML = `
+        <h2>Awesome! Pick a date:</h2>
+        <button onclick="pickDate('2026-02-06')">Friday, February 6</button>
+        <button onclick="pickDate('2026-02-08')">Sunday, February 8</button>
+        <button onclick="pickDate('2026-02-13')">Friday, February 13</button>
+        <button onclick="pickDate('2026-02-14')">Saturday, February 14</button>
+        <button onclick="pickDate('2026-02-15')">Sunday, February 15</button>
+        <button onclick="pickDate('custom')">Enter a date manually</button>
+        <div class="back-restart">
+            <button onclick="goBack()">Back</button>
+            <button onclick="restart()">Restart</button>
+        </div>
+    `;
+}
+
+function pickDate(date) {
+    const screen = document.getElementById("screen");
+
+    if (date === 'custom') {
+        screenHistory.push(screen.innerHTML);
+        screen.innerHTML = `
+            <h2>Pick a date:</h2>
+            <p class="note">To see the calendar, click the icon on the right 📅</p>
+            <input type="date" id="customDate" value="${selectedDate || ''}"><br>
+            <button onclick="submitCustomDate()">Continue</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+        return;
+    }
+
+    selectedDate = date;
+
+    // Valentine logic: only ask once
+    if (date === '2026-02-14' && !valentineAnswered) {
+        valentineAnswered = true;
+        screenHistory.push(screen.innerHTML);
+        screen.innerHTML = `
+            <h2>In order to select this date…</h2>
+            <h2>Will you be my Valentine? 💖</h2>
+            <button onclick="valentineAnswer(true)">Yes 💕</button>
+            <button onclick="valentineAnswer(false)">No 💔</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+        return;
+    }
+
+    // Super Bowl Sunday logic: only ask once
+    if (date === '2026-02-08' && !superBowlAnswered) {
+        superBowlAnswered = true;
+        screenHistory.push(screen.innerHTML);
+        screen.innerHTML = `
+            <h2>Am I crazy for asking a Texan out on a date on Super Bowl Sunday?</h2>
+            <p>Yes? Maybe a little, lol 😅</p>
+            <button onclick="superBowlAnswer()">Continue</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+        return;
+    }
+
+    showTimeSelectionScreen();
+}
+
+function submitCustomDate() {
+    const dateInput = document.getElementById("customDate").value;
+    if (!dateInput) { 
+        alert("Please pick a date!"); 
+        return; 
+    }
+
+    const selected = parseLocalDate(dateInput);
+    const today = new Date();
+    today.setHours(0,0,0,0); // ignore time
+
+    if (selected < today) {
+        alert("Unless you have a time machine, it's gonna be tricky to go out on a day that's already passed 😅");
+        return;
+    }
+
+    selectedDate = dateInput;
+    showTimeSelectionScreen();
+}
+
+function valentineAnswer(answer) {
+    if (answer) {
+        showTimeSelectionScreen(false);
+    } else {
+        // Show "reason for saying no" screen
+        const screen = document.getElementById("screen");
+        screenHistory.push(screen.innerHTML);
+
+        screen.innerHTML = `
+            <h2>Thanks for being honest 💛</h2>
+            <p>Would you mind sharing why?</p>
+            <form id="valentineNoForm">
+                <label><input type="radio" name="reason" value="I just want to be friends"> I just want to be friends</label><br>
+                <label><input type="radio" name="reason" value="I'm not into you"> I'm not into you</label><br>
+                <label><input type="radio" name="reason" value="This isn't working out"> This isn't working out</label><br>
+                <label>Other: <input type="text" id="valentineNoOther"></label><br>
+            </form>
+            <button onclick="submitValentineNoReason()">Continue</button>
+            <div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+            </div>
+        `;
+    }
+}
+
+function submitValentineNoReason() {
+    let selectedReason = '';
+    const radios = document.querySelectorAll('#valentineNoForm input[type=radio]');
+    radios.forEach(r => {
+        if (r.checked) selectedReason = r.value;
+    });
+    const other = document.getElementById("valentineNoOther").value.trim();
+    if (other) selectedReason = other;
+
+    if (!selectedReason) {
+        alert("Please select or enter a reason!");
+        return;
+    }
+
+    maybeInputText = selectedReason;
+    finalizeSubmission('notInterested'); // reuse the finalize screen
+}
+
+function superBowlAnswer() {
+    showTimeSelectionScreen(false);
+}
+
+// ---------------------- Date/Time ----------------------
+function showTimeSelectionScreen(pushHistory = true) {
+    const screen = document.getElementById("screen");
+    if (pushHistory) screenHistory.push(screen.innerHTML);
+
+    screen.innerHTML = `
+        <h2>Select your date and time:</h2>
+        <input type="date" id="fullDate" value="${selectedDate || ''}"><br>
+        <p class="note">Then pick a time:</p>
+        <input type="time" id="fullTime" value="${selectedTime || ''}"><br>
+        <button onclick="submitFullDateTime()">Confirm</button>
+        <div class="back-restart">
+            <button onclick="goBack()">Back</button>
+            <button onclick="restart()">Restart</button>
+        </div>
+    `;
+}
+
+function submitFullDateTime() {
+    const dateInput = document.getElementById("fullDate").value;
+    const timeInput = document.getElementById("fullTime").value;
+    if (!dateInput || !timeInput) { 
+        alert("Please pick date & time!"); 
+        return; 
+    }
+
+    const selected = parseLocalDate(dateInput);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (selected < today) {
+        alert("Unless you have a time machine, it's gonna be tricky to go out on a day that's already passed 😅");
+        return;
+    }
+
+    selectedDate = dateInput;
+    selectedTime = timeInput;
+    showTownSelection();
+}
+
+// ---------------------- Town Selection ----------------------
+function showTownSelection() {
+    const screen = document.getElementById("screen");
+    screenHistory.push(screen.innerHTML);
+
+    screen.innerHTML = `
+        <div class="sticky">
+            <strong>Date & Time:</strong> ${formatDate(selectedDate)} at ${formatTime(selectedTime)}
+            <button onclick="showTimeSelectionScreen(false)">Edit Date/Time</button>
+        </div>
+        <h2>Which part of town do you want to explore?</h2>
+        <select id="townSelect" onchange="handleTownChange()">
+            <option value="">Select one</option>
+            <option>Silverlake</option>
+            <option>Los Feliz</option>
+            <option>Downtown LA</option>
+            <option>Echo Park</option>
+            <option>Little Tokyo</option>
+            <option>Chinatown</option>
+            <option>Highland Park</option>
+            <option>West Hollywood</option>
+            <option>Koreatown</option>
+            <option>Venice Beach</option>
+            <option>Malibu</option>
+            <option>North Hollywood</option>
+            <option>Westwood</option>
+            <option>Studio City</option>
+            <option>Santa Monica</option>
+            <option>DTLA Arts District</option>
+            <option>Glendale</option>
+            <option>Burbank</option>
+            <option>Other</option>
+        </select><br>
+        <div id="customTownContainer" style="display:none; margin-top:10px;">
+            <input type="text" id="customTown" placeholder="Enter your location">
+        </div>
+        <button onclick="submitTown()">Continue</button>
+        <div class="back-restart">
+            <button onclick="goBack()">Back</button>
+            <button onclick="restart()">Restart</button>
+        </div>
+    `;
+}
+
+function handleTownChange() {
+    const select = document.getElementById("townSelect");
+    document.getElementById("customTownContainer").style.display = select.value === "Other" ? "block" : "none";
+}
+
+function submitTown() {
+    let town = document.getElementById("townSelect").value;
+    if (!town) { alert("Please select a town!"); return; }
+    if (town === "Other") {
+        const custom = document.getElementById("customTown").value.trim();
+        if (!custom) { alert("Enter custom town!"); return; }
+        town = custom;
+    }
+    selectedTown = town;
+    showActivities();
+}
+
+// ---------------------- Activities ----------------------
+function showActivities() {
+    const screen = document.getElementById("screen");
+    screenHistory.push(screen.innerHTML);
+
+    const activities = [
+        "Go for a hike or walk",
+        "Have a picnic outdoors",
+        "Get dinner",
+        "Grab a sweet treat / non-alcoholic drink",
+        "Explore bookstores or local shops",
+        "Visit an art gallery",
+        "Visit a museum",
+        "Watch a movie",
+        "Go roller skating",
+        "Go rock climbing",
+        "Attend a live show / concert",
+        "Visit a rooftop or scenic viewpoint",
+        "Take a bike ride",
+        "Go to a cafe and chat"
+    ];
+
+    let html = `<h2>Select activities:</h2>`;
+    html += `<div class="sticky"><strong>Date & Time:</strong> ${formatDate(selectedDate)} at ${formatTime(selectedTime)}<br><strong>Town:</strong> ${selectedTown}<button onclick="showTimeSelectionScreen(false)">Edit Date/Time</button></div>`;
+    html += `<form id="activitiesForm">`;
+    activities.forEach(act => html += `<label class="activity-option"><input type="checkbox" value="${act}"> ${act}</label>`);
+    html += `<label class="activity-option">Other: <input type="text" id="customActivity"></label>`;
+    html += `</form>`;
+    html += `<button onclick="submitActivities()">Continue</button>`;
+    html += `<div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+             </div>`;
+
+    screen.innerHTML = html;
+}
+
+function submitActivities() {
+    selectedActivities = [];
+    document.querySelectorAll('#activitiesForm input[type=checkbox]:checked').forEach(cb => selectedActivities.push(cb.value));
+    const custom = document.getElementById("customActivity").value.trim();
+    if (custom) selectedActivities.push(custom);
+    if (selectedActivities.length === 0) { alert("Select at least one activity!"); return; }
+    finalizeSubmission('date');
+}
+
+// ---------------------- Maybe branch ----------------------
+function maybeScreen() {
+    screenHistory.push(document.getElementById("screen").innerHTML);
+    const html = `
+        <h2>Share your thoughts:</h2>
+        <form id="maybeForm">
+            <label><input type="radio" name="reason" value="Not sure yet"> Not sure yet</label><br>
+            <label><input type="radio" name="reason" value="I need more time"> I need more time</label><br>
+            <label><input type="radio" name="reason" value="Maybe later"> Maybe later</label><br>
+            <label>Other: <input type="text" id="maybeOther" value="${maybeInputText}"></label>
+        </form>
+        <button onclick="submitMaybe()">Continue</button>
+        <div class="back-restart">
+            <button onclick="goBack()">Back</button>
+            <button onclick="restart()">Restart</button>
+        </div>
+    `;
+    document.getElementById("screen").innerHTML = html;
+}
+
+function submitMaybe() {
+    let selectedReason = '';
+    const radios = document.querySelectorAll('#maybeForm input[type=radio]');
+    radios.forEach(r => {
+        if (r.checked) selectedReason = r.value;
+    });
+    const other = document.getElementById("maybeOther").value.trim();
+    if (other) selectedReason = other;
+
+    if (!selectedReason) { 
+        alert("Please select or enter a reason!"); 
+        return; 
+    }
+
+    maybeInputText = selectedReason;
+    finalizeSubmission('maybe');
+}
+
+// ---------------------- Not Interested branch ----------------------
+function notInterestedScreen() {
+    screenHistory.push(document.getElementById("screen").innerHTML);
+    document.getElementById("screen").innerHTML = `
+        <h2>All good — thanks for being honest 💛</h2>
+        <p>Would you like to share why?</p>
+        <form id="notInterestedForm">
+            <label><input type="radio" name="reason" value="I just want to be friends"> I just want to be friends</label><br>
+            <label><input type="radio" name="reason" value="I'm not into you"> I'm not into you</label><br>
+            <label><input type="radio" name="reason" value="This isn't working out"> This isn't working out</label><br>
+            <label>Other: <input type="text" id="notInterestedOther"></label>
+        </form>
+        <button onclick="submitNotInterested()">Continue</button>
+        <div class="back-restart">
+            <button onclick="goBack()">Back</button>
+            <button onclick="restart()">Restart</button>
+        </div>
+    `;
+}
+
+function submitNotInterested() {
+    let selectedReason = '';
+    const radios = document.querySelectorAll('#notInterestedForm input[type=radio]');
+    radios.forEach(r => {
+        if (r.checked) selectedReason = r.value;
+    });
+    const other = document.getElementById("notInterestedOther").value.trim();
+    if (other) selectedReason = other;
+
+    if (!selectedReason) { 
+        alert("Please select or enter a reason!"); 
+        return; 
+    }
+
+    maybeInputText = selectedReason;
+    finalizeSubmission('notInterested');
+}
+
+// ---------------------- Final Submission ----------------------
+function finalizeSubmission(branch) {
+    screenHistory.push(document.getElementById("screen").innerHTML);
+    let html = `<h2>Finalize your submission</h2>`;
+    if (branch === 'date') {
+        html += `<p><strong>Date & Time:</strong> ${formatDate(selectedDate)} at ${formatTime(selectedTime)}</p>`;
+        html += `<p><strong>Town:</strong> ${selectedTown}</p>`;
+        html += `<p><strong>Activities:</strong> ${selectedActivities.join(", ")}</p>`;
+    } else {
+        html += `<p><strong>Your input:</strong> ${maybeInputText}</p>`;
+    }
+    html += `<button onclick="shareResults()">Share your results</button>`;
+    html += `<div class="back-restart">
+                <button onclick="goBack()">Back</button>
+                <button onclick="restart()">Restart</button>
+             </div>`;
+    document.getElementById("screen").innerHTML = html;
+}
+
+function shareResults() {
+    const resultsDiv = document.getElementById("screen");
+
+    html2canvas(resultsDiv).then(canvas => {
+        // Convert canvas to image
+        const imgData = canvas.toDataURL("image/png");
+
+        // Create temporary download link
+        const link = document.createElement('a');
+        link.href = imgData;
+        link.download = 'my_results.png';
+        link.click();
+
+        // Prompt user with your number
+        alert("Your results are saved as an image!\n\nNow send this screenshot to Brianne at (213) 219-1675 💖");
+    });
+}
+
+</script>
+</body>
+</html>
